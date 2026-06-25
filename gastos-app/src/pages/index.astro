@@ -1,0 +1,428 @@
+---
+---
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Rendición de Gastos</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" is:inline></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js" is:inline></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: #f0f2f5;
+      min-height: 100vh;
+      padding: 2rem 1rem;
+      color: #1a1a2e;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    h1 {
+      text-align: center;
+      font-size: 1.6rem;
+      margin-bottom: 1.5rem;
+      color: #1a1a2e;
+    }
+
+    .form-card {
+      background: #fff;
+      border-radius: 12px;
+      padding: 1.5rem;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+      margin-bottom: 1.5rem;
+    }
+
+    .form-card h2 {
+      font-size: 0.85rem;
+      color: #888;
+      margin-bottom: 1rem;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .form-row {
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+      align-items: flex-end;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+      flex: 1;
+      min-width: 150px;
+    }
+
+    label {
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: #666;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    input[type="date"],
+    select,
+    input[type="text"] {
+      padding: 0.6rem 0.8rem;
+      border: 1.5px solid #dde1e7;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      color: #1a1a2e;
+      background: #fafbfc;
+      transition: border-color 0.2s;
+      width: 100%;
+    }
+
+    input[type="date"]:focus,
+    select:focus,
+    input[type="text"]:focus {
+      outline: none;
+      border-color: #4361ee;
+      background: #fff;
+    }
+
+    .btn {
+      padding: 0.65rem 1.4rem;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+
+    .btn-add    { background: #4361ee; color: #fff; }
+    .btn-add:hover { background: #3451d1; transform: translateY(-1px); }
+
+    .btn-danger {
+      background: transparent;
+      color: #e63946;
+      border: 1.5px solid #e63946;
+      padding: 0.3rem 0.7rem;
+      font-size: 0.8rem;
+      border-radius: 6px;
+    }
+    .btn-danger:hover { background: #e63946; color: #fff; }
+
+    .btn-pdf    { background: #2d6a4f; color: #fff; }
+    .btn-pdf:hover { background: #1b4332; transform: translateY(-1px); }
+
+    .btn-print  { background: #495057; color: #fff; }
+    .btn-print:hover { background: #343a40; transform: translateY(-1px); }
+
+    .table-card {
+      background: #fff;
+      border-radius: 12px;
+      padding: 1.5rem;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+    }
+
+    .table-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+      flex-wrap: wrap;
+      gap: 0.8rem;
+    }
+
+    #mesAnio {
+      font-size: 1.1rem;
+      font-weight: 600;
+      border: none;
+      border-bottom: 2px dashed #ccc;
+      border-radius: 0;
+      background: transparent;
+      width: 280px;
+      padding: 0.2rem 0.4rem;
+      color: #1a1a2e;
+    }
+    #mesAnio:focus { outline: none; border-bottom-color: #4361ee; }
+
+    .actions { display: flex; gap: 0.6rem; flex-wrap: wrap; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.9rem;
+    }
+
+    th {
+      background: #4361ee;
+      color: #fff;
+      padding: 0.7rem 1rem;
+      text-align: left;
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    th.col-monto  { text-align: right; }
+    th.col-action { text-align: center; width: 70px; }
+
+    td {
+      padding: 0.65rem 1rem;
+      border-bottom: 1px solid #eef0f3;
+      color: #333;
+    }
+    td.col-monto  { text-align: right; font-variant-numeric: tabular-nums; }
+    td.col-action { text-align: center; }
+
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: #f8f9ff; }
+
+    .total-row td {
+      font-weight: 700;
+      background: #f0f4ff;
+      color: #1a1a2e;
+      border-top: 2px solid #4361ee;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 2.5rem;
+      color: #aaa;
+      font-size: 0.9rem;
+    }
+
+    /* Coloured badges */
+    .badge {
+      display: inline-block;
+      padding: 0.2rem 0.65rem;
+      border-radius: 20px;
+      font-size: 0.78rem;
+      font-weight: 600;
+    }
+    .b-COLACION        { background:#d8f3dc; color:#1b4332; }
+    .b-PEAJE           { background:#ffd6a5; color:#7d4e00; }
+    .b-COMBUSTIBLE     { background:#fee2e2; color:#991b1b; }
+    .b-MOVILIZACION    { background:#e0e7ff; color:#3730a3; }
+    .b-ESTACIONAMIENTO { background:#fef3c7; color:#92400e; }
+    .b-VIATICO         { background:#ede9fe; color:#5b21b6; }
+    .b-OTRO            { background:#f1f5f9; color:#475569; }
+
+    @media print {
+      body { background:#fff; padding:0; }
+      .form-card, .actions, .col-action, .btn { display:none !important; }
+      .table-card { box-shadow:none; padding:0; }
+      #mesAnio { border:none; }
+      th { background:#000 !important; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+      .total-row td { background:#e8e8e8 !important; print-color-adjust:exact; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Rendición de Gastos</h1>
+
+    <!-- ── Input form ── -->
+    <div class="form-card">
+      <h2>Agregar gasto</h2>
+      <div class="form-row">
+        <div class="form-group">
+          <label for="fecha">Fecha</label>
+          <input type="date" id="fecha" />
+        </div>
+        <div class="form-group">
+          <label for="detalle">Detalle</label>
+          <select id="detalle">
+            <option value="">-- Seleccionar --</option>
+            <option value="COLACION">Colación</option>
+            <option value="PEAJE">Peaje</option>
+            <option value="COMBUSTIBLE">Combustible</option>
+            <option value="MOVILIZACION">Movilización</option>
+            <option value="ESTACIONAMIENTO">Estacionamiento</option>
+            <option value="VIATICO">Viático</option>
+            <option value="OTRO">Otro</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="monto">Monto (CLP)</label>
+          <input type="text" id="monto" placeholder="$ 0" inputmode="numeric" autocomplete="off" />
+        </div>
+        <button class="btn btn-add" onclick="agregarFila()">+ Agregar</button>
+      </div>
+    </div>
+
+    <!-- ── Expense table ── -->
+    <div class="table-card">
+      <div class="table-header">
+        <input type="text" id="mesAnio" value="Mes de Abril 2026.-" title="Haz clic para editar el título" />
+        <div class="actions">
+          <button class="btn btn-print" onclick="window.print()">Imprimir</button>
+          <button class="btn btn-pdf"   onclick="generarPDF()">Descargar PDF</button>
+        </div>
+      </div>
+
+      <table id="tablaGastos">
+        <thead>
+          <tr>
+            <th>Fecha</th>
+            <th>Detalle</th>
+            <th class="col-monto">Monto</th>
+            <th class="col-action no-print">—</th>
+          </tr>
+        </thead>
+        <tbody id="cuerpoTabla">
+          <tr id="filaVacia">
+            <td colspan="4" class="empty-state">No hay gastos. Agrega uno arriba.</td>
+          </tr>
+        </tbody>
+        <tfoot id="piePagina" style="display:none">
+          <tr class="total-row">
+            <td colspan="2"><strong>TOTAL</strong></td>
+            <td class="col-monto" id="totalMonto"></td>
+            <td class="col-action no-print"></td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+  </div>
+
+  <script>
+    // ── Utilities ─────────────────────────────────────────────────────────────
+    const formatCLP = n => '$ ' + Math.round(n).toLocaleString('es-CL');
+    const parseCLP  = s => parseInt((s || '').replace(/\D/g, ''), 10) || 0;
+    const fmtFecha  = iso => { const [y,m,d] = iso.split('-'); return `${d}-${m}-${y}`; };
+
+    // Live CLP formatting
+    document.getElementById('monto').addEventListener('input', function () {
+      const raw = this.value.replace(/\D/g, '');
+      this.value = raw ? '$ ' + parseInt(raw).toLocaleString('es-CL') : '';
+    });
+
+    // Allow Enter to add row
+    document.getElementById('monto').addEventListener('keydown', e => {
+      if (e.key === 'Enter') agregarFila();
+    });
+
+    // ── State ─────────────────────────────────────────────────────────────────
+    let filas = [];
+
+    // ── Render ────────────────────────────────────────────────────────────────
+    function renderTabla() {
+      const tbody = document.getElementById('cuerpoTabla');
+      const tfoot = document.getElementById('piePagina');
+
+      // Remove old data rows
+      [...tbody.querySelectorAll('tr:not(#filaVacia)')].forEach(r => r.remove());
+
+      if (filas.length === 0) {
+        document.getElementById('filaVacia').style.display = '';
+        tfoot.style.display = 'none';
+        return;
+      }
+      document.getElementById('filaVacia').style.display = 'none';
+      tfoot.style.display = '';
+
+      filas.forEach((f, i) => {
+        const tr = document.createElement('tr');
+        tr.innerHTML =
+          `<td>${fmtFecha(f.fecha)}</td>` +
+          `<td><span class="badge b-${f.detalle}">${f.detalle}</span></td>` +
+          `<td class="col-monto">${formatCLP(f.monto)}</td>` +
+          `<td class="col-action no-print"><button class="btn btn-danger" onclick="eliminarFila(${i})">✕</button></td>`;
+        tbody.appendChild(tr);
+      });
+
+      document.getElementById('totalMonto').textContent =
+        formatCLP(filas.reduce((s, f) => s + f.monto, 0));
+    }
+
+    // ── Add row ───────────────────────────────────────────────────────────────
+    function agregarFila() {
+      const fecha   = document.getElementById('fecha').value;
+      const detalle = document.getElementById('detalle').value;
+      const monto   = parseCLP(document.getElementById('monto').value);
+
+      if (!fecha)   { alert('Selecciona una fecha.'); return; }
+      if (!detalle) { alert('Selecciona un detalle.'); return; }
+      if (!monto)   { alert('Ingresa un monto mayor a 0.'); return; }
+
+      filas.push({ fecha, detalle, monto });
+      filas.sort((a, b) => b.fecha.localeCompare(a.fecha)); // most recent first
+      renderTabla();
+
+      document.getElementById('fecha').value   = '';
+      document.getElementById('detalle').value = '';
+      document.getElementById('monto').value   = '';
+      document.getElementById('fecha').focus();
+    }
+
+    // ── Delete row ────────────────────────────────────────────────────────────
+    function eliminarFila(i) {
+      filas.splice(i, 1);
+      renderTabla();
+    }
+
+    // ── PDF export ────────────────────────────────────────────────────────────
+    function generarPDF() {
+      if (filas.length === 0) { alert('No hay datos para exportar.'); return; }
+
+      const { jsPDF } = window.jspdf;
+      const doc   = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+      const titulo = document.getElementById('mesAnio').value || 'Rendición de Gastos';
+      const total  = filas.reduce((s, f) => s + f.monto, 0);
+
+      // Header
+      doc.setFontSize(15);
+      doc.setFont('helvetica', 'bold');
+      doc.text(titulo, 105, 18, { align: 'center' });
+
+      // Subheader – month extracted from title
+      const mesLabel = titulo
+        .replace(/mes\s+de\s+/i, '')
+        .replace(/[.\-]+\s*$/, '')
+        .trim()
+        .toUpperCase();
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'normal');
+      doc.text(mesLabel, 105, 25, { align: 'center' });
+
+      // Table body rows + TOTAL row
+      const body = [
+        ...filas.map(f => [fmtFecha(f.fecha), f.detalle, formatCLP(f.monto)]),
+        ['', 'TOTAL', formatCLP(total)]
+      ];
+
+      doc.autoTable({
+        startY: 30,
+        head:   [['FECHA', 'DETALLE', 'MONTO']],
+        body,
+        styles:      { fontSize: 10, cellPadding: 3 },
+        headStyles:  { fillColor: [67, 97, 238], textColor: 255, fontStyle: 'bold', halign: 'center' },
+        columnStyles: {
+          0: { halign: 'center', cellWidth: 38 },
+          1: { halign: 'left' },
+          2: { halign: 'right', cellWidth: 42 },
+        },
+        didParseCell: data => {
+          if (data.section === 'body' && data.row.index === filas.length) {
+            data.cell.styles.fontStyle   = 'bold';
+            data.cell.styles.fillColor   = [224, 231, 255];
+            data.cell.styles.textColor   = [26, 26, 46];
+          }
+        },
+        margin: { left: 20, right: 20 },
+      });
+
+      const safeName = titulo.replace(/[^a-zA-Z0-9áéíóúÁÉÍÓÚñÑ\s]/g, '').replace(/\s+/g, '_');
+      doc.save(safeName + '.pdf');
+    }
+
+    // ── Init ──────────────────────────────────────────────────────────────────
+    document.getElementById('fecha').valueAsDate = new Date();
+  </script>
+</body>
+</html>
